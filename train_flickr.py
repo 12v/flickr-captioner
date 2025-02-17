@@ -100,7 +100,6 @@ def train():
                 padding_mask,
             )
 
-            # Backward pass
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -126,14 +125,16 @@ def train():
             output_caption,
             padding_mask,
         ) in val_dataloader:
+            decoder.eval()
             image_embedding = image_embedding.to(device)
             input_caption = input_caption.to(device)
             output_caption = output_caption.to(device)
             padding_mask = padding_mask.to(device)
 
-            loss = decoder.compute_loss(
-                image_embedding, input_caption, output_caption, padding_mask
-            )
+            with torch.no_grad():
+                loss = decoder.compute_loss(
+                    image_embedding, input_caption, output_caption, padding_mask
+                )
             val_losses.append(loss.item())
 
         wandb.log(
