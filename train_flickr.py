@@ -4,6 +4,13 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from utils import DummyWandb, device
+
+if torch.cuda.is_available():
+    import wandb
+else:
+    wandb = DummyWandb()
+
 from data.clip_caption_dataset import (
     Flickr30kDataset,
     padding_token,
@@ -19,18 +26,15 @@ from params_flickr import (
     num_decoder_layers,
     num_heads,
 )
-from utils import DummyWandb, device
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def train():
     num_epochs = 10
-    batch_size = 512 if device == "cuda" else 200
-    learning_rate = 1e-3 if device == "cuda" else 1e-3
-    num_workers = 4 if device == "cuda" else 2
-    if not device == "cuda":
-        wandb = DummyWandb()
+    batch_size = 512 if torch.cuda.is_available() else 200
+    learning_rate = 1e-3 if torch.cuda.is_available() else 1e-3
+    num_workers = 4 if torch.cuda.is_available() else 2
 
     train_dataloader = DataLoader(
         Flickr30kDataset(train_ds, caption_length=decoder_length - 1),
