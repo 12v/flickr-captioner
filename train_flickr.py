@@ -32,8 +32,8 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 def train():
     num_epochs = 10
-    batch_size = 512 if torch.cuda.is_available() else 200
-    learning_rate = 1e-3 if torch.cuda.is_available() else 1e-3
+    batch_size = 1024 if torch.cuda.is_available() else 200
+    learning_rate = 1e-2 if torch.cuda.is_available() else 1e-3
     num_workers = 4 if torch.cuda.is_available() else 2
 
     train_dataloader = DataLoader(
@@ -112,6 +112,7 @@ def train():
         print(
             f"Epoch {epoch + 1}/{num_epochs}, Average Loss: {sum(batch_losses) / len(batch_losses):.4f}"
         )
+        os.makedirs(os.path.join(script_dir, "weights"), exist_ok=True)
         torch.save(
             decoder.state_dict(),
             os.path.join(script_dir, f"weights/decoder_{epoch}.pth"),
