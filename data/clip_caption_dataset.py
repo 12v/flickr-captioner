@@ -124,7 +124,7 @@ class Flickr30kTokenizer:
 tokenizer = Flickr30kTokenizer(captions)
 
 
-def image_and_caption_generator(ds):
+def embedding_and_caption_generator(ds):
     options = []
     for i in range(len(ds)):
         for j in range(5):
@@ -133,10 +133,28 @@ def image_and_caption_generator(ds):
     random.shuffle(options)
 
     for photo_index, caption_index in options:
-        photo = ds[photo_index][0]
+        embedding = ds[photo_index][0]
         caption = ds[photo_index][1][caption_index]
 
-        yield photo, caption
+        yield embedding, caption
+
+
+def inference_generator(ds):
+    flickr = load_dataset("nlphuji/flickr30k", split="test", trust_remote_code=True)
+
+    options = []
+    for i in range(len(ds)):
+        for j in range(5):
+            options.append((i, j))
+
+    random.shuffle(options)
+
+    for photo_index, caption_index in options:
+        embedding = ds[photo_index][0]
+        caption = ds[photo_index][1][caption_index]
+        photo = flickr[photo_index]["image"]
+
+        yield embedding, caption, photo
 
 
 class Flickr30kDataset(IterableDataset):
@@ -146,7 +164,7 @@ class Flickr30kDataset(IterableDataset):
 
     def __iter__(self):
         dataset = self.get_worker_ds(self.ds)
-        generator = image_and_caption_generator(dataset)
+        generator = embedding_and_caption_generator(dataset)
         for photo, caption in generator:
             input_caption, output_caption, padding_mask = tokenizer.encode(
                 caption, self.caption_length

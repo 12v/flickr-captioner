@@ -19,7 +19,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 def train():
     num_epochs = 10
-    batch_size = 512 if device == "cuda" else 512
+    batch_size = 512 if device == "cuda" else 200
     learning_rate = 1e-3 if device == "cuda" else 1e-3
     num_workers = 4 if device == "cuda" else 2
 

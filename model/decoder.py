@@ -70,14 +70,14 @@ class Decoder(nn.Module):
         image_embedding = image_embedding.unsqueeze(1)
 
         combined_embeddings = torch.cat([image_embedding, label_embeddings], dim=1)
-        combined_embeddings = self.positional_encoder(combined_embeddings)
+        x = self.positional_encoder(combined_embeddings)
 
         full_padding_mask = torch.cat(
             [torch.ones_like(image_embedding)[..., 0], padding_mask], dim=1
         )
 
         for layer in self.decoder_layers:
-            x = layer(combined_embeddings, full_padding_mask)
+            x = layer(x, full_padding_mask)
 
         x = self.norm(x)
         return self.output_layer(x)
