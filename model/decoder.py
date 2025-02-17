@@ -1,22 +1,20 @@
 import torch
 import torch.nn as nn
 
-from model.attention import Attention
 from model.positional_encoder import PositionalEncoder
 
 
 class DecoderLayer(nn.Module):
     def __init__(self, d_model_decoder, num_heads):
         super().__init__()
-        self.masked_self_attention = Attention(
-            query_dim=d_model_decoder,
-            key_value_dim=d_model_decoder,
+        self.masked_self_attention = nn.MultiheadAttention(
+            embed_dim=d_model_decoder,
             num_heads=num_heads,
-            causal_mask=True,
+            batch_first=True,
         )
         self.feed_forward = nn.Sequential(
             nn.Linear(d_model_decoder, d_model_decoder * 4),
-            nn.ReLU(),
+            nn.GELU(),
             nn.Linear(d_model_decoder * 4, d_model_decoder),
         )
         self.norm1 = nn.LayerNorm(d_model_decoder)
@@ -24,7 +22,17 @@ class DecoderLayer(nn.Module):
 
     def forward(self, embeddings, padding_mask):
         x = self.norm1(embeddings)
-        attention, _ = self.masked_self_attention(embeddings, embeddings, padding_mask)
+        causal_mask = nn.Transformer.generate_square_subsequent_mask(
+            embeddings.shape[1], device=embeddings.device
+        )
+        attention, _ = self.masked_self_attention(
+            embeddings,
+            embeddings,
+            embeddings,
+            is_causal=True,
+            key_padding_mask=padding_mask,
+            attn_mask=causal_mask,
+        )
         x = self.norm2(x + attention)
         return self.feed_forward(x)
 
@@ -37,6 +45,7 @@ class Decoder(nn.Module):
         num_decoder_layers,
         vocab_size,
         num_heads,
+        padding_index,
     ):
         super().__init__()
         self.embedder = nn.Embedding(vocab_size, d_model_decoder)
@@ -49,35 +58,28 @@ class Decoder(nn.Module):
         )
         self.norm = nn.LayerNorm(d_model_decoder)
         self.output_layer = nn.Linear(d_model_decoder, vocab_size)
+        self.padding_index = padding_index
 
     def compute_loss(self, image_embedding, input_labels, output_labels, padding_mask):
         x = self.forward(image_embedding, input_labels, padding_mask)
         x = x[:, 1:, :]
         x = torch.permute(x, (0, 2, 1))
 
-        loss = nn.CrossEntropyLoss(reduction="none")(x, output_labels)
-
-        loss = loss * padding_mask
-
-        masked_loss_sum = loss.sum()
-        num_non_padding = padding_mask.sum()
-        final_loss = masked_loss_sum / num_non_padding
-
-        return final_loss
+        return nn.CrossEntropyLoss(ignore_index=self.padding_index)(x, output_labels)
 
     def forward(self, image_embedding, input_labels, padding_mask):
         label_embeddings = self.embedder(input_labels)
-        image_embedding = image_embedding.unsqueeze(1)
 
+        image_embedding = image_embedding.unsqueeze(1)
         combined_embeddings = torch.cat([image_embedding, label_embeddings], dim=1)
+
+        image_embedding_mask = torch.ones_like(image_embedding)[:, :, 0]
+        combined_padding_mask = torch.cat([image_embedding_mask, padding_mask], dim=1)
+
         x = self.positional_encoder(combined_embeddings)
 
-        full_padding_mask = torch.cat(
-            [torch.ones_like(image_embedding)[..., 0], padding_mask], dim=1
-        )
-
         for layer in self.decoder_layers:
-            x = layer(x, full_padding_mask)
+            x = layer(x, combined_padding_mask)
 
         x = self.norm(x)
         return self.output_layer(x)

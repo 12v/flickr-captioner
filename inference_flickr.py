@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from data.clip_caption_dataset import (
     finish_token,
     inference_generator,
+    padding_token,
     start_token,
     test_ds,
     tokenizer,
@@ -25,10 +26,15 @@ model = Decoder(
     vocab_size=vocab_size,
     num_decoder_layers=num_decoder_layers,
     num_heads=num_heads,
+    padding_index=tokenizer.get_id_for_token(padding_token),
 )
 
 
 model.load_state_dict(torch.load("weights/decoder_0.pth", map_location=device))
+
+# count number of parameters
+total_params = sum(p.numel() for p in model.parameters())
+print(f"Total number of parameters: {total_params}")
 
 model.to(device)
 

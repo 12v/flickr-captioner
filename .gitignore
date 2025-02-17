@@ -1,6 +1,7 @@
 wandb
 weights
 venv
+hosts
 
 *.pkl
 *.txt
