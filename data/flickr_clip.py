@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 from transformers import (
     CLIPModel,
     CLIPProcessor,
-    CLIPTextModelWithProjection,
+    CLIPTextModel,
     CLIPTokenizer,
 )
 
@@ -20,9 +20,7 @@ pretrained_model = "openai/clip-vit-base-patch32"
 
 clip_image_model = CLIPModel.from_pretrained(pretrained_model).to(device)
 clip_processor = CLIPProcessor.from_pretrained(pretrained_model)
-clip_text_model = CLIPTextModelWithProjection.from_pretrained(pretrained_model).to(
-    device
-)
+clip_text_model = CLIPTextModel.from_pretrained(pretrained_model).to(device)
 clip_tokenizer = CLIPTokenizer.from_pretrained(pretrained_model)
 
 for param in clip_image_model.parameters():
