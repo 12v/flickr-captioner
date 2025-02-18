@@ -25,6 +25,7 @@ class DecoderLayer(nn.Module):
         causal_mask = nn.Transformer.generate_square_subsequent_mask(
             embeddings.shape[1], device=embeddings.device
         )
+        causal_mask = causal_mask != 0
         attention, _ = self.masked_self_attention(
             embeddings,
             embeddings,
@@ -80,6 +81,7 @@ class Decoder(nn.Module):
         combined_padding_mask = torch.cat(
             [image_embedding_mask, input_padding_mask], dim=1
         )
+        combined_padding_mask = combined_padding_mask == 0
 
         x = self.positional_encoder(combined_embeddings)
 
