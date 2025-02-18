@@ -4,10 +4,10 @@ import torch
 from datasets import load_dataset
 from torch.utils.data import Dataset
 from transformers import (
+    CLIPModel,
     CLIPProcessor,
     CLIPTextModelWithProjection,
     CLIPTokenizer,
-    CLIPVisionModel,
 )
 
 from utils import device
@@ -18,7 +18,7 @@ ds = load_dataset("nlphuji/flickr30k", split="test", trust_remote_code=True)
 
 pretrained_model = "openai/clip-vit-base-patch32"
 
-clip_image_model = CLIPVisionModel.from_pretrained(pretrained_model).to(device)
+clip_image_model = CLIPModel.from_pretrained(pretrained_model).to(device)
 clip_processor = CLIPProcessor.from_pretrained(pretrained_model)
 clip_text_model = CLIPTextModelWithProjection.from_pretrained(pretrained_model).to(
     device
@@ -114,8 +114,9 @@ def get_text_embeddings_from_token_ids(token_ids, padding_mask):
             input_ids=token_ids,
             attention_mask=padding_mask,
         )
-        last_hidden_state = clip_text_outputs.last_hidden_state
-        return last_hidden_state.to(device)
+
+        last_hidden_state_without_cls = clip_text_outputs.last_hidden_state[:, 1:, :]
+        return last_hidden_state_without_cls.to(device)
 
 
 def get_image_embeddings(photos):
@@ -124,6 +125,5 @@ def get_image_embeddings(photos):
             device
         )
 
-        clip_image_outputs = clip_image_model(**clip_image_inputs)
-        pooler_output = clip_image_outputs.pooler_output
-        return pooler_output.to(device)
+        clip_image_outputs = clip_image_model.get_image_features(**clip_image_inputs)
+        return clip_image_outputs.to(device)
