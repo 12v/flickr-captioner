@@ -4,7 +4,6 @@ venv
 hosts
 
 *.pkl
-*.txt
 *.model
 *.vocab
 # General

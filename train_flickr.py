@@ -1,4 +1,5 @@
 import os
+from functools import partial
 
 import torch
 from torch.utils.data import DataLoader
@@ -11,13 +12,12 @@ if torch.cuda.is_available():
 else:
     wandb = DummyWandb()
 
-from data.clip_caption_dataset import (
-    Flickr30kDataset,
-    padding_token,
+from data.flickr_clip import (
+    FlickrClipDataset,
+    _collate_fn,
+    clip_tokenizer,
     test_ds,
-    tokenizer,
     train_ds,
-    vocab_size,
 )
 from model.decoder import Decoder
 from params_flickr import (
@@ -32,36 +32,46 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 def train():
     num_epochs = 10
-    batch_size = 1024 if torch.cuda.is_available() else 200
+    batch_size = 1024 if torch.cuda.is_available() else 100
     learning_rate = 1e-2 if torch.cuda.is_available() else 1e-3
-    num_workers = 4 if torch.cuda.is_available() else 2
+    num_workers = 4 if torch.cuda.is_available() else 0
+
+    partial_collate_fn = partial(_collate_fn, caption_length=decoder_length - 1)
+
+    training_dataset = FlickrClipDataset(train_ds, caption_length=decoder_length - 1)
+    validation_dataset = FlickrClipDataset(test_ds, caption_length=decoder_length - 1)
 
     train_dataloader = DataLoader(
-        Flickr30kDataset(train_ds, caption_length=decoder_length - 1),
+        training_dataset,
         batch_size=batch_size,
         num_workers=num_workers,
+        shuffle=True,
+        collate_fn=partial_collate_fn,
     )
 
     val_dataloader = DataLoader(
-        Flickr30kDataset(test_ds, caption_length=decoder_length - 1),
+        validation_dataset,
         batch_size=batch_size,
         num_workers=num_workers,
+        shuffle=True,
+        collate_fn=partial_collate_fn,
     )
 
     decoder = Decoder(
         d_model_decoder=d_model_decoder,
         decoder_length=decoder_length,
         num_decoder_layers=num_decoder_layers,
-        vocab_size=vocab_size,
+        vocab_size=clip_tokenizer.vocab_size,
         num_heads=num_heads,
-        padding_index=tokenizer.get_id_for_token(padding_token),
+        padding_index=clip_tokenizer.pad_token_id,
     )
+
     optimizer = torch.optim.AdamW(decoder.parameters(), lr=learning_rate)
 
     decoder = decoder.to(device)
 
     wandb.init(
-        project="flickr-captioning",
+        project="flickr-captioning-clip-tokenizer",
         config={
             "d_model_decoder": d_model_decoder,
             "decoder_length": decoder_length,
@@ -79,24 +89,24 @@ def train():
         train_loop = tqdm(
             train_dataloader,
             desc=f"Epoch {epoch + 1}/{num_epochs}",
-            total=len(train_ds) * 5 // batch_size,
+            total=len(train_dataloader),
         )
 
         for (
             image_embedding,
-            input_caption,
-            output_caption,
+            input_text_embeddings,
+            output_tokens,
             padding_mask,
         ) in train_loop:
             image_embedding = image_embedding.to(device)
-            input_caption = input_caption.to(device)
-            output_caption = output_caption.to(device)
+            input_text_embeddings = input_text_embeddings.to(device)
+            output_tokens = output_tokens.to(device)
             padding_mask = padding_mask.to(device)
 
             loss = decoder.compute_loss(
                 image_embedding,
-                input_caption,
-                output_caption,
+                input_text_embeddings,
+                output_tokens,
                 padding_mask,
             )
 
@@ -121,19 +131,22 @@ def train():
         val_losses = []
         for (
             image_embedding,
-            input_caption,
-            output_caption,
+            input_text_embeddings,
+            output_tokens,
             padding_mask,
         ) in val_dataloader:
             decoder.eval()
             image_embedding = image_embedding.to(device)
-            input_caption = input_caption.to(device)
-            output_caption = output_caption.to(device)
+            input_text_embeddings = input_text_embeddings.to(device)
+            output_tokens = output_tokens.to(device)
             padding_mask = padding_mask.to(device)
 
             with torch.no_grad():
                 loss = decoder.compute_loss(
-                    image_embedding, input_caption, output_caption, padding_mask
+                    image_embedding,
+                    input_text_embeddings,
+                    output_tokens,
+                    padding_mask,
                 )
             val_losses.append(loss.item())
 
