@@ -115,7 +115,7 @@ def get_text_embeddings_from_token_ids(token_ids, padding_mask):
             attention_mask=padding_mask,
         )
 
-        last_hidden_state_without_cls = clip_text_outputs.last_hidden_state[:, 1:, :]
+        last_hidden_state_without_cls = clip_text_outputs
         return last_hidden_state_without_cls.to(device)
 
 
