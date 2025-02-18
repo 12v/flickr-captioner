@@ -98,18 +98,18 @@ def train():
 
         for (
             image_embedding,
-            input_text_embeddings,
+            input_tokens,
             output_tokens,
             padding_mask,
         ) in train_loop:
             image_embedding = image_embedding.to(device)
-            input_text_embeddings = input_text_embeddings.to(device)
+            input_tokens = input_tokens.to(device)
             output_tokens = output_tokens.to(device)
             padding_mask = padding_mask.to(device)
 
             loss = decoder.compute_loss(
                 image_embedding,
-                input_text_embeddings,
+                input_tokens,
                 output_tokens,
                 padding_mask,
             )
@@ -135,20 +135,20 @@ def train():
         val_losses = []
         for (
             image_embedding,
-            input_text_embeddings,
+            input_tokens,
             output_tokens,
             padding_mask,
         ) in val_dataloader:
             decoder.eval()
             image_embedding = image_embedding.to(device)
-            input_text_embeddings = input_text_embeddings.to(device)
+            input_tokens = input_tokens.to(device)
             output_tokens = output_tokens.to(device)
             padding_mask = padding_mask.to(device)
 
             with torch.no_grad():
                 loss = decoder.compute_loss(
                     image_embedding,
-                    input_text_embeddings,
+                    input_tokens,
                     output_tokens,
                     padding_mask,
                 )

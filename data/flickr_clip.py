@@ -64,7 +64,7 @@ def _collate_fn(batch, caption_length):
     captions = [item[1] for item in batch]
 
     with torch.no_grad():
-        input_text_embeddings, output_tokens, input_padding_mask = get_text_embeddings(
+        input_tokens, output_tokens, input_padding_mask = get_text_embeddings(
             captions, caption_length
         )
 
@@ -72,7 +72,7 @@ def _collate_fn(batch, caption_length):
 
         return (
             image_embeddings,
-            input_text_embeddings,
+            input_tokens,
             output_tokens,
             input_padding_mask,
         )
@@ -95,12 +95,8 @@ def get_text_embeddings(captions, caption_length):
         input_tokens = input_tokens[:, :-1]
         input_padding_mask = input_padding_mask[:, :-1]
 
-        clip_text_outputs = get_text_embeddings_from_token_ids(
-            input_tokens, input_padding_mask
-        )
-
         return (
-            clip_text_outputs,
+            input_tokens,
             output_tokens,
             input_padding_mask,
         )
