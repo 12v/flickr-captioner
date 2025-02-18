@@ -1,14 +1,13 @@
+import random
+
 import torch
 import torch.nn.functional as F
 
-from data.clip_caption_dataset import (
-    finish_token,
-    inference_generator,
-    padding_token,
-    start_token,
+from data.flickr_clip import (
+    clip_tokenizer,
+    get_image_embeddings,
+    get_text_embeddings_from_token_ids,
     test_ds,
-    tokenizer,
-    vocab_size,
 )
 from data.visualization import visualize_image
 from model.decoder import Decoder
@@ -23,14 +22,14 @@ from utils import device
 model = Decoder(
     d_model_decoder=d_model_decoder,
     decoder_length=decoder_length,
-    vocab_size=vocab_size,
+    vocab_size=clip_tokenizer.vocab_size,
     num_decoder_layers=num_decoder_layers,
     num_heads=num_heads,
-    padding_index=tokenizer.get_id_for_token(padding_token),
+    padding_index=clip_tokenizer.pad_token_id,
 )
 
 
-model.load_state_dict(torch.load("weights/decoder_0.pth", map_location=device))
+model.load_state_dict(torch.load("weights/decoder_0_gpu.pth", map_location=device))
 
 # count number of parameters
 total_params = sum(p.numel() for p in model.parameters())
@@ -40,16 +39,28 @@ model.to(device)
 
 model.eval()
 with torch.no_grad():
-    for embedding, caption, photo in inference_generator(test_ds):
-        input_tokens = [tokenizer.get_id_for_token(start_token)]
+    while True:
+        random_index = random.randint(0, len(test_ds) - 1)
+        image = test_ds[random_index]["image"]
+        captions = test_ds[random_index]["caption"]
+        random_caption = random.choice(captions)
+
+        input_tokens = [clip_tokenizer.bos_token_id]
         output_tokens = []
 
+        image_embeddings = get_image_embeddings([image])
+
         for i in range(decoder_length - 1):
-            tokens = torch.stack((torch.tensor(input_tokens),))
+            input_token_tensor = torch.tensor([input_tokens]).to(device)
+            padding_mask = torch.ones_like(input_token_tensor).to(device)
+            input_text_embeddings = get_text_embeddings_from_token_ids(
+                input_token_tensor, padding_mask
+            )
+
             output = model(
-                embedding.unsqueeze(0).to(device),
-                tokens.to(device),
-                torch.ones_like(tokens).to(device),
+                image_embeddings.to(device),
+                input_text_embeddings.to(device),
+                padding_mask.to(device),
             )
 
             softmax_output = F.softmax(output[0][0][1:], dim=-1)
@@ -59,11 +70,11 @@ with torch.no_grad():
             output_tokens.append(output_token)
 
             print(output_tokens, end="\r")
-            output_text = tokenizer.decode(output_tokens)
+            output_text = clip_tokenizer.decode(output_tokens)
 
-            if output_token == tokenizer.get_id_for_token(finish_token):
+            if output_token == clip_tokenizer.eos_token_id:
                 break
 
         print("\n")
         print(output_text)
-        visualize_image(photo)
+        visualize_image(image)

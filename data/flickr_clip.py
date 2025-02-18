@@ -59,6 +59,22 @@ def _collate_fn(batch, caption_length):
     captions = [item[1] for item in batch]
 
     with torch.no_grad():
+        input_text_embeddings, output_tokens, input_padding_mask = get_text_embeddings(
+            captions, caption_length
+        )
+
+        image_embeddings = get_image_embeddings(photos)
+
+        return (
+            image_embeddings,
+            input_text_embeddings,
+            output_tokens,
+            input_padding_mask,
+        )
+
+
+def get_text_embeddings(captions, caption_length):
+    with torch.no_grad():
         clip_text_inputs = clip_tokenizer(
             captions,
             padding=True,
@@ -69,25 +85,36 @@ def _collate_fn(batch, caption_length):
 
         input_padding_mask = clip_text_inputs.attention_mask
         input_tokens = clip_text_inputs.input_ids
+
         output_tokens = input_tokens[:, 1:]
         input_tokens = input_tokens[:, :-1]
         input_padding_mask = input_padding_mask[:, :-1]
 
-        clip_text_outputs = clip_text(
-            input_ids=input_tokens,
-            attention_mask=input_padding_mask,
+        clip_text_outputs = get_text_embeddings_from_token_ids(
+            input_tokens, input_padding_mask
         )
-        input_text_embeddings = clip_text_outputs.last_hidden_state.to(device)
 
+        return (
+            clip_text_outputs.last_hidden_state.to(device),
+            output_tokens,
+            input_padding_mask,
+        )
+
+
+def get_text_embeddings_from_token_ids(token_ids, padding_mask):
+    with torch.no_grad():
+        clip_text_outputs = clip_text(
+            input_ids=token_ids,
+            attention_mask=padding_mask,
+        )
+
+        return clip_text_outputs.last_hidden_state.to(device)
+
+
+def get_image_embeddings(photos):
+    with torch.no_grad():
         clip_image_inputs = clip_processor(images=photos, return_tensors="pt").to(
             device
         )
 
-        image_embeddings = clip_model.get_image_features(**clip_image_inputs).to(device)
-
-        return (
-            image_embeddings,
-            input_text_embeddings,
-            output_tokens,
-            input_padding_mask,
-        )
+        return clip_model.get_image_features(**clip_image_inputs).to(device)
