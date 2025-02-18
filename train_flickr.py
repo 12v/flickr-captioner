@@ -1,3 +1,4 @@
+import multiprocessing as mp
 import os
 from functools import partial
 
@@ -32,9 +33,10 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 def train():
     num_epochs = 10
-    batch_size = 1024 if torch.cuda.is_available() else 100
-    learning_rate = 1e-2 if torch.cuda.is_available() else 1e-3
+    batch_size = 128 if torch.cuda.is_available() else 100
+    learning_rate = 3e-3 if torch.cuda.is_available() else 1e-3
     num_workers = 4 if torch.cuda.is_available() else 0
+    persistent_workers = True if num_workers > 0 else False
 
     partial_collate_fn = partial(_collate_fn, caption_length=decoder_length - 1)
 
@@ -47,6 +49,7 @@ def train():
         num_workers=num_workers,
         shuffle=True,
         collate_fn=partial_collate_fn,
+        persistent_workers=persistent_workers,
     )
 
     val_dataloader = DataLoader(
@@ -55,6 +58,7 @@ def train():
         num_workers=num_workers,
         shuffle=True,
         collate_fn=partial_collate_fn,
+        persistent_workers=persistent_workers,
     )
 
     decoder = Decoder(
@@ -162,4 +166,5 @@ def train():
 
 
 if __name__ == "__main__":
+    mp.set_start_method("spawn", force=True)
     train()

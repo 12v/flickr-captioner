@@ -11,12 +11,18 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 ds = load_dataset("nlphuji/flickr30k", split="test", trust_remote_code=True)
 
-clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
-clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-clip_text = CLIPTextModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
-clip_tokenizer = CLIPTokenizer.from_pretrained(
-    "openai/clip-vit-base-patch32", pad_token="<|padding|>", unk_token="<|unknown|>"
-)
+pretrained_model = "openai/clip-vit-base-patch32"
+
+clip_model = CLIPModel.from_pretrained(pretrained_model).to(device)
+clip_processor = CLIPProcessor.from_pretrained(pretrained_model)
+clip_text = CLIPTextModel.from_pretrained(pretrained_model).to(device)
+clip_tokenizer = CLIPTokenizer.from_pretrained(pretrained_model)
+
+for param in clip_model.parameters():
+    param.requires_grad = False
+
+for param in clip_text.parameters():
+    param.requires_grad = False
 
 clip_model.eval()
 clip_text.eval()
