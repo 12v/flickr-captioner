@@ -49,6 +49,7 @@ class Decoder(nn.Module):
         padding_index,
     ):
         super().__init__()
+        self.embedding = nn.Linear(d_model_decoder, d_model_decoder)
         self.positional_encoder = PositionalEncoder(d_model_decoder, decoder_length)
         self.decoder_layers = nn.ModuleList(
             [
@@ -75,7 +76,9 @@ class Decoder(nn.Module):
 
     def forward(self, image_embedding, input_text_embeddings, input_padding_mask):
         image_embedding = image_embedding.unsqueeze(1)
+
         combined_embeddings = torch.cat([image_embedding, input_text_embeddings], dim=1)
+        combined_embeddings = self.embedding(combined_embeddings)
 
         image_embedding_mask = torch.ones_like(image_embedding)[:, :, 0]
         combined_padding_mask = torch.cat(
