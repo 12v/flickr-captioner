@@ -95,7 +95,7 @@ def get_text_embeddings(captions, caption_length):
         )
 
         return (
-            clip_text_outputs.last_hidden_state.to(device),
+            clip_text_outputs,
             output_tokens,
             input_padding_mask,
         )
