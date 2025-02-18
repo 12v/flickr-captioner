@@ -3,7 +3,12 @@ import os
 import torch
 from datasets import load_dataset
 from torch.utils.data import Dataset
-from transformers import CLIPModel, CLIPProcessor, CLIPTextModel, CLIPTokenizer
+from transformers import (
+    CLIPProcessor,
+    CLIPTextModelWithProjection,
+    CLIPTokenizer,
+    CLIPVisionModel,
+)
 
 from utils import device
 
@@ -13,19 +18,21 @@ ds = load_dataset("nlphuji/flickr30k", split="test", trust_remote_code=True)
 
 pretrained_model = "openai/clip-vit-base-patch32"
 
-clip_model = CLIPModel.from_pretrained(pretrained_model).to(device)
+clip_image_model = CLIPVisionModel.from_pretrained(pretrained_model).to(device)
 clip_processor = CLIPProcessor.from_pretrained(pretrained_model)
-clip_text = CLIPTextModel.from_pretrained(pretrained_model).to(device)
+clip_text_model = CLIPTextModelWithProjection.from_pretrained(pretrained_model).to(
+    device
+)
 clip_tokenizer = CLIPTokenizer.from_pretrained(pretrained_model)
 
-for param in clip_model.parameters():
+for param in clip_image_model.parameters():
     param.requires_grad = False
 
-for param in clip_text.parameters():
+for param in clip_text_model.parameters():
     param.requires_grad = False
 
-clip_model.eval()
-clip_text.eval()
+clip_image_model.eval()
+clip_text_model.eval()
 
 
 length = len(ds)
@@ -103,12 +110,12 @@ def get_text_embeddings(captions, caption_length):
 
 def get_text_embeddings_from_token_ids(token_ids, padding_mask):
     with torch.no_grad():
-        clip_text_outputs = clip_text(
+        clip_text_outputs = clip_text_model(
             input_ids=token_ids,
             attention_mask=padding_mask,
         )
-
-        return clip_text_outputs.last_hidden_state.to(device)
+        last_hidden_state = clip_text_outputs.last_hidden_state
+        return last_hidden_state.to(device)
 
 
 def get_image_embeddings(photos):
@@ -117,4 +124,6 @@ def get_image_embeddings(photos):
             device
         )
 
-        return clip_model.get_image_features(**clip_image_inputs).to(device)
+        clip_image_outputs = clip_image_model(**clip_image_inputs)
+        pooler_output = clip_image_outputs.pooler_output
+        return pooler_output.to(device)

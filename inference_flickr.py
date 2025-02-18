@@ -12,6 +12,7 @@ from data.flickr_clip import (
 from data.visualization import visualize_image
 from model.decoder import Decoder
 from params_flickr import (
+    d_image_embeddings,
     d_model_decoder,
     decoder_length,
     num_decoder_layers,
@@ -21,6 +22,7 @@ from utils import device
 
 model = Decoder(
     d_model_decoder=d_model_decoder,
+    d_image_embeddings=d_image_embeddings,
     decoder_length=decoder_length,
     vocab_size=clip_tokenizer.vocab_size,
     num_decoder_layers=num_decoder_layers,

@@ -22,6 +22,7 @@ from data.flickr_clip import (
 )
 from model.decoder import Decoder
 from params_flickr import (
+    d_image_embeddings,
     d_model_decoder,
     decoder_length,
     num_decoder_layers,
@@ -63,6 +64,7 @@ def train():
 
     decoder = Decoder(
         d_model_decoder=d_model_decoder,
+        d_image_embeddings=d_image_embeddings,
         decoder_length=decoder_length,
         num_decoder_layers=num_decoder_layers,
         vocab_size=clip_tokenizer.vocab_size,

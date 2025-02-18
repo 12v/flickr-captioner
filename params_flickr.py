@@ -1,4 +1,5 @@
 d_model_decoder = 512
+d_image_embeddings = 768
 
 decoder_length = 50
 
