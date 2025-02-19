@@ -23,19 +23,20 @@ class DecoderLayer(nn.Module):
     def forward(self, embeddings, padding_mask):
         x = self.norm1(embeddings)
         causal_mask = nn.Transformer.generate_square_subsequent_mask(
-            embeddings.shape[1], device=embeddings.device
+            x.shape[1], device=x.device
         )
         causal_mask = causal_mask != 0
         attention, _ = self.masked_self_attention(
-            embeddings,
-            embeddings,
-            embeddings,
+            x,
+            x,
+            x,
             is_causal=True,
             key_padding_mask=padding_mask,
             attn_mask=causal_mask,
         )
-        x = self.norm2(x + attention)
-        return self.feed_forward(x)
+        attended_embeddings = embeddings + attention
+        x = self.norm2(attended_embeddings)
+        return attended_embeddings + self.feed_forward(x)
 
 
 class Decoder(nn.Module):
