@@ -1,16 +1,18 @@
 import torch
 import torch.nn as nn
 
+from model.attention import Attention
 from model.positional_encoder import PositionalEncoder
 
 
 class DecoderLayer(nn.Module):
     def __init__(self, d_model_decoder, num_heads):
         super().__init__()
-        self.masked_self_attention = nn.MultiheadAttention(
-            embed_dim=d_model_decoder,
+        self.masked_self_attention = Attention(
+            query_dim=d_model_decoder,
+            key_value_dim=d_model_decoder,
             num_heads=num_heads,
-            batch_first=True,
+            causal_mask=True,
         )
         self.feed_forward = nn.Sequential(
             nn.Linear(d_model_decoder, d_model_decoder * 4),
@@ -22,17 +24,10 @@ class DecoderLayer(nn.Module):
 
     def forward(self, embeddings, padding_mask):
         x = self.norm1(embeddings)
-        causal_mask = nn.Transformer.generate_square_subsequent_mask(
-            x.shape[1], device=x.device
-        )
-        causal_mask = causal_mask != 0
         attention, _ = self.masked_self_attention(
             x,
             x,
-            x,
-            is_causal=True,
             key_padding_mask=padding_mask,
-            attn_mask=causal_mask,
         )
         attended_embeddings = embeddings + attention
         x = self.norm2(attended_embeddings)
