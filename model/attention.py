@@ -41,13 +41,12 @@ class Attention(nn.Module):
             torch.tensor(self.head_dim)
         )
         if key_padding_mask is not None:
+            assert key_padding_mask.dtype == torch.bool
             key_padding_mask = key_padding_mask.unsqueeze(1).unsqueeze(2)
             expanded_key_padding_mask = key_padding_mask.expand(
                 -1, attention.shape[1], -1, -1
             )
-            attention = attention.masked_fill(
-                expanded_key_padding_mask == 0, float("-inf")
-            )
+            attention = attention.masked_fill(expanded_key_padding_mask, float("-inf"))
 
         if self.causal_mask:
             attention = attention.masked_fill(
