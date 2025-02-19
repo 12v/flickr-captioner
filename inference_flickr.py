@@ -13,6 +13,7 @@ from model.decoder import Decoder
 from params_flickr import (
     d_model_decoder,
     decoder_length,
+    dropout_rate,
     num_decoder_layers,
     num_heads,
 )
@@ -25,10 +26,11 @@ model = Decoder(
     num_decoder_layers=num_decoder_layers,
     num_heads=num_heads,
     padding_index=clip_tokenizer.pad_token_id,
+    dropout_rate=dropout_rate,
 )
 
 
-model.load_state_dict(torch.load("weights/decoder_0_gpu.pth", map_location=device))
+model.load_state_dict(torch.load("weights/decoder_2_gpu.pth", map_location=device))
 
 # count number of parameters
 total_params = sum(p.numel() for p in model.parameters())

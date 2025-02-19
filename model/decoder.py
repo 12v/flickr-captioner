@@ -1,37 +1,44 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from model.attention import Attention
 from model.positional_encoder import PositionalEncoder
 
 
 class DecoderLayer(nn.Module):
-    def __init__(self, d_model_decoder, num_heads):
+    def __init__(self, d_model_decoder, num_heads, dropout_rate):
         super().__init__()
         self.masked_self_attention = Attention(
             query_dim=d_model_decoder,
             key_value_dim=d_model_decoder,
             num_heads=num_heads,
+            dropout_rate=dropout_rate,
             causal_mask=True,
         )
         self.feed_forward = nn.Sequential(
             nn.Linear(d_model_decoder, d_model_decoder * 4),
+            nn.Dropout(dropout_rate),
             nn.GELU(),
             nn.Linear(d_model_decoder * 4, d_model_decoder),
         )
         self.norm1 = nn.LayerNorm(d_model_decoder)
         self.norm2 = nn.LayerNorm(d_model_decoder)
+        self.dropout_rate = dropout_rate
 
     def forward(self, embeddings, padding_mask):
         x = self.norm1(embeddings)
-        attention, _ = self.masked_self_attention(
+        x, _ = self.masked_self_attention(
             x,
             x,
             key_padding_mask=padding_mask,
         )
-        attended_embeddings = embeddings + attention
+        x = F.dropout(x, self.dropout_rate)
+        attended_embeddings = embeddings + x
         x = self.norm2(attended_embeddings)
-        return attended_embeddings + self.feed_forward(x)
+        x = self.feed_forward(x)
+        x = F.dropout(x, self.dropout_rate)
+        return attended_embeddings + x
 
 
 class Decoder(nn.Module):
@@ -43,6 +50,7 @@ class Decoder(nn.Module):
         vocab_size,
         num_heads,
         padding_index,
+        dropout_rate,
     ):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, d_model_decoder)
@@ -50,13 +58,14 @@ class Decoder(nn.Module):
         self.positional_encoder = PositionalEncoder(d_model_decoder, decoder_length)
         self.decoder_layers = nn.ModuleList(
             [
-                DecoderLayer(d_model_decoder, num_heads)
+                DecoderLayer(d_model_decoder, num_heads, dropout_rate)
                 for _ in range(num_decoder_layers)
             ]
         )
         self.norm = nn.LayerNorm(d_model_decoder)
         self.output_layer = nn.Linear(d_model_decoder, vocab_size)
         self.padding_index = padding_index
+        self.dropout_rate = dropout_rate
 
     def compute_loss(
         self,
@@ -86,6 +95,8 @@ class Decoder(nn.Module):
         combined_padding_mask = combined_padding_mask == 0
 
         x = self.positional_encoder(combined_embeddings)
+
+        x = F.dropout(x, self.dropout_rate)
 
         for layer in self.decoder_layers:
             x = layer(x, combined_padding_mask)

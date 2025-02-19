@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class Attention(nn.Module):
@@ -8,6 +9,7 @@ class Attention(nn.Module):
         query_dim,
         key_value_dim,
         num_heads,
+        dropout_rate,
         causal_mask=False,
     ):
         super().__init__()
@@ -19,6 +21,8 @@ class Attention(nn.Module):
         self.value_weights = nn.Linear(key_value_dim, key_value_dim)  # Value
 
         self.output_layer = nn.Linear(key_value_dim, query_dim)
+
+        self.dropout_rate = dropout_rate
 
         assert key_value_dim % num_heads == 0, (
             f"key_value_dim must be divisible by num_heads, got key_value_dim={key_value_dim} and num_heads={num_heads}"
@@ -54,7 +58,8 @@ class Attention(nn.Module):
                 float("-inf"),
             )
         raw_attention = torch.softmax(attention, dim=-1)
-        weighted_attention = torch.matmul(raw_attention, value)
+        dropped_out_raw_attention = F.dropout(raw_attention, self.dropout_rate)
+        weighted_attention = torch.matmul(dropped_out_raw_attention, value)
         weighted_attention = (
             weighted_attention.transpose(1, 2)
             .contiguous()

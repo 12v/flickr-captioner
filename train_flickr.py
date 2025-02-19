@@ -24,6 +24,7 @@ from model.decoder import Decoder
 from params_flickr import (
     d_model_decoder,
     decoder_length,
+    dropout_rate,
     num_decoder_layers,
     num_heads,
 )
@@ -68,6 +69,7 @@ def train():
         vocab_size=clip_tokenizer.vocab_size,
         num_heads=num_heads,
         padding_index=clip_tokenizer.pad_token_id,
+        dropout_rate=dropout_rate,
     )
 
     optimizer = torch.optim.AdamW(decoder.parameters(), lr=learning_rate)
@@ -84,6 +86,7 @@ def train():
             "batch_size": batch_size,
             "learning_rate": learning_rate,
             "num_epochs": num_epochs,
+            "dropout_rate": dropout_rate,
         },
     )
 
