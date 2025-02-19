@@ -1,0 +1,45 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build, Tag, and Push Docker Image",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "docker buildx build --platform linux/amd64,linux/arm64 -t 12v12v/flickr:latest --push ."
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+            },
+            "detail": "Build, tag, and push the Docker image to Docker Hub"
+        },
+        {
+            "label": "Deploy to remote server",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "ansible-playbook -i hosts playbook.yml",
+            ],
+            "group": {
+                "kind": "build",
+            },
+            "detail": "Run the Ansible playbook to install Docker and start the container"
+        },
+        {
+            "label": "Run container locally",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "docker run --pull always -p 8000:60606 12v12v/flickr:latest"
+            ],
+            "group": {
+                "kind": "build",
+            },
+            "detail": "Pull and run the latest container locally"
+        }
+    ]
+}

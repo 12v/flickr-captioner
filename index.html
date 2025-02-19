@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload</title>
+</head>
+
+<body>
+    <input type="file" id="fileInput" accept="image/*">
+    <button onclick="uploadImage()">Upload</button>
+    <br>
+    <img id="uploadedImage" style="max-width: 300px; display: none;" />
+    <p id="output"></p>
+
+    <script>
+        const fileInput = document.getElementById("fileInput");
+        const imgElement = document.getElementById("uploadedImage");
+        const outputElement = document.getElementById("output");
+
+        // Show image immediately after selecting a file
+        fileInput.addEventListener("change", function () {
+            if (!fileInput.files.length) return;
+            const file = fileInput.files[0];
+
+            // Free previous object URL to avoid memory leaks
+            if (imgElement.src) {
+                URL.revokeObjectURL(imgElement.src);
+            }
+
+            imgElement.src = URL.createObjectURL(file);
+            imgElement.style.display = "block";
+            outputElement.innerText = ""; // Clear previous output
+        });
+
+        function uploadImage() {
+            if (!fileInput.files.length) return;
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append("file", file);
+
+            // outputElement.innerText = "Uploading...";
+
+            fetch("/upload/", {
+                method: "POST",
+                body: formData
+            })
+                .then(response => {
+                    const reader = response.body.getReader();
+                    function read() {
+                        reader.read().then(({ done, value }) => {
+                            if (done) return;
+                            outputElement.innerText += new TextDecoder().decode(value) + " ";
+                            read();
+                        });
+                    }
+                    read();
+                })
+                .catch(error => {
+                    console.error("Upload failed:", error);
+                    outputElement.innerText = "Error uploading image.";
+                });
+        }
+    </script>
+</body>
+
+</html>

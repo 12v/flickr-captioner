@@ -1,6 +1,7 @@
 wandb
 weights
 venv
+app-venv
 hosts
 data/flickr30k_embedded.pt
 

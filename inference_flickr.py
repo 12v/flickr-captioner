@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
 
@@ -60,6 +59,8 @@ def inference(image):
 
 if __name__ == "__main__":
     import random
+
+    import matplotlib.pyplot as plt
 
     from data.flickr import test_ds
 

@@ -1,0 +1,42 @@
+---
+- name: Install Docker and run container
+  hosts: remote_hosts
+  become: true  # Use sudo to run commands
+  tasks:
+
+    # Install Docker (Debian/Ubuntu-based systems)
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    # Start Docker service
+    - name: Ensure Docker service is started and enabled
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Get running containers
+      docker_host_info:
+        containers: yes
+      register: docker_info
+
+    - name: Stop running containers
+      docker_container:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ docker_info.containers | map(attribute='Id') | list }}"
+
+    # Run the container from the pulled image
+    - name: Run flickr container
+      docker_container:
+        name: flickr-container
+        image: 12v12v/flickr
+        state: started
+        restart_policy: always
+        pull: true
+        published_ports:
+          - "8000:60606"
+        network_mode: bridge
