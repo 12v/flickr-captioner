@@ -14,7 +14,7 @@ if torch.cuda.is_available():
 else:
     wandb = DummyWandb()
 
-from data.flickr_clip import (
+from data.flickr import (
     FlickrClipDataset,
     _collate_fn,
     test_ds,

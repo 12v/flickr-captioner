@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 from data.bert import bert_tokenizer
 from data.clip import get_image_embeddings
-from data.flickr_clip import test_ds
+from data.flickr import test_ds
 from model.decoder import Decoder
 from params_flickr import (
     d_model_decoder,
