@@ -1,12 +1,9 @@
-import random
-
 import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
 
 from data.bert import bert_tokenizer
 from data.clip import get_image_embeddings
-from data.flickr import test_ds
 from model.decoder import Decoder
 from params_flickr import (
     d_model_decoder,
@@ -29,19 +26,12 @@ model = Decoder(
 
 
 model.load_state_dict(torch.load("weights/decoder_gpu.pth", map_location=device))
-
-# count number of parameters
-total_params = sum(p.numel() for p in model.parameters())
-print(f"Total number of parameters: {total_params}")
-
 model.to(device)
-
 model.eval()
-with torch.no_grad():
-    while True:
-        random_index = random.randint(0, len(test_ds) - 1)
-        image = test_ds[random_index]["image"]
 
+
+def inference(image):
+    with torch.no_grad():
         input_tokens = [bert_tokenizer.cls_token_id]
         output_tokens = []
 
@@ -58,8 +48,6 @@ with torch.no_grad():
             )
 
             softmax_output = F.softmax(output[0][i + 1], dim=-1)
-            # output_token = torch.multinomial(softmax_output, 1).item()
-
             output_token = torch.argmax(softmax_output).item()
 
             if output_token == bert_tokenizer.sep_token_id:
@@ -67,12 +55,24 @@ with torch.no_grad():
 
             input_tokens.append(output_token)
             output_tokens.append(output_token)
+            yield bert_tokenizer.decode(output_tokens)
 
-            print(output_tokens, end="\r")
-            output_text = bert_tokenizer.decode(output_tokens)
 
+if __name__ == "__main__":
+    import random
+
+    from data.flickr import test_ds
+
+    total_params = sum(p.numel() for p in model.parameters())
+    print(f"Total number of parameters: {total_params}")
+
+    while True:
+        random_index = random.randint(0, len(test_ds) - 1)
+        image = test_ds[random_index]["image"]
+
+        for chunk in inference(image):
+            print(chunk, end="\r")
         print("\n")
-        print(output_text)
         plt.imshow(image)
         plt.axis("off")
         plt.show()
