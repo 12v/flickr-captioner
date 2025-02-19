@@ -4,10 +4,10 @@ import torch
 from datasets import load_dataset
 from torch.utils.data import Dataset
 from transformers import (
+    AutoTokenizer,
     CLIPModel,
     CLIPProcessor,
     CLIPTextModel,
-    CLIPTokenizer,
 )
 
 from utils import device
@@ -21,7 +21,7 @@ pretrained_model = "openai/clip-vit-base-patch32"
 clip_image_model = CLIPModel.from_pretrained(pretrained_model).to(device)
 clip_processor = CLIPProcessor.from_pretrained(pretrained_model)
 clip_text_model = CLIPTextModel.from_pretrained(pretrained_model).to(device)
-clip_tokenizer = CLIPTokenizer.from_pretrained(pretrained_model)
+clip_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 
 for param in clip_image_model.parameters():
     param.requires_grad = False
