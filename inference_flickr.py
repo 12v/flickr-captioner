@@ -6,7 +6,6 @@ import torch.nn.functional as F
 from data.flickr_clip import (
     clip_tokenizer,
     get_image_embeddings,
-    get_text_embeddings_from_token_ids,
     test_ds,
 )
 from data.visualization import visualize_image
@@ -53,13 +52,10 @@ with torch.no_grad():
         for i in range(decoder_length - 1):
             input_token_tensor = torch.tensor([input_tokens]).to(device)
             padding_mask = torch.ones_like(input_token_tensor).to(device)
-            input_text_embeddings = get_text_embeddings_from_token_ids(
-                input_token_tensor, padding_mask
-            )
 
             output = model(
                 image_embeddings.to(device),
-                input_text_embeddings.to(device),
+                input_token_tensor.to(device),
                 padding_mask.to(device),
             )
 
