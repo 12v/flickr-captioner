@@ -2,6 +2,7 @@ wandb
 weights
 venv
 hosts
+data/flickr30k_embedded.pt
 
 *.pkl
 *.model
