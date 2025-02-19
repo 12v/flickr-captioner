@@ -1,12 +1,13 @@
-import random
+import io
 
-import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
+from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import FileResponse, StreamingResponse
+from PIL import Image
 
 from data.bert import bert_tokenizer
 from data.clip import get_image_embeddings
-from data.flickr_clip import test_ds
 from model.decoder import Decoder
 from params_flickr import (
     d_model_decoder,
@@ -16,6 +17,8 @@ from params_flickr import (
     num_heads,
 )
 from utils import device
+
+app = FastAPI()
 
 model = Decoder(
     d_model_decoder=d_model_decoder,
@@ -29,23 +32,16 @@ model = Decoder(
 
 
 model.load_state_dict(torch.load("weights/decoder_gpu.pth", map_location=device))
-
-# count number of parameters
-total_params = sum(p.numel() for p in model.parameters())
-print(f"Total number of parameters: {total_params}")
-
 model.to(device)
-
 model.eval()
-with torch.no_grad():
-    while True:
-        random_index = random.randint(0, len(test_ds) - 1)
-        image = test_ds[random_index]["image"]
 
+
+async def processing_image(file: UploadFile):
+    with torch.no_grad():
+        image_embeddings = get_image_embeddings([file])
         input_tokens = [bert_tokenizer.cls_token_id]
         output_tokens = []
-
-        image_embeddings = get_image_embeddings([image])
+        output_string = ""
 
         for i in range(decoder_length - 1):
             input_token_tensor = torch.tensor([input_tokens]).to(device)
@@ -58,8 +54,6 @@ with torch.no_grad():
             )
 
             softmax_output = F.softmax(output[0][i + 1], dim=-1)
-            # output_token = torch.multinomial(softmax_output, 1).item()
-
             output_token = torch.argmax(softmax_output).item()
 
             if output_token == bert_tokenizer.sep_token_id:
@@ -69,10 +63,18 @@ with torch.no_grad():
             output_tokens.append(output_token)
 
             print(output_tokens, end="\r")
-            output_text = bert_tokenizer.decode(output_tokens)
+            new_output_string = bert_tokenizer.decode(output_tokens)
+            yield new_output_string[len(output_string) :]
+            output_string = new_output_string
 
-        print("\n")
-        print(output_text)
-        plt.imshow(image)
-        plt.axis("off")
-        plt.show()
+
+@app.post("/upload")
+async def upload_image(file: UploadFile = File(...)):
+    image_bytes = await file.read()
+    image = Image.open(io.BytesIO(image_bytes))
+    return StreamingResponse(processing_image(image), media_type="text/plain")
+
+
+@app.get("/")
+async def root():
+    return FileResponse("index.html")

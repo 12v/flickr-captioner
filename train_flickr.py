@@ -6,6 +6,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from data.bert import bert_tokenizer
 from utils import DummyWandb, device
 
 if torch.cuda.is_available():
@@ -16,7 +17,6 @@ else:
 from data.flickr_clip import (
     FlickrClipDataset,
     _collate_fn,
-    bert_tokenizer,
     test_ds,
     test_embeddings,
     train_ds,
