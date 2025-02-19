@@ -110,7 +110,7 @@ def _collate_fn(batch, caption_length):
         )
 
         return (
-            torch.cat(photos, dim=0),
+            torch.stack(photos),
             input_tokens,
             output_tokens,
             input_padding_mask,
