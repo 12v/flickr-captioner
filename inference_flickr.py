@@ -30,7 +30,7 @@ model = Decoder(
 )
 
 
-model.load_state_dict(torch.load("weights/decoder_2_gpu.pth", map_location=device))
+model.load_state_dict(torch.load("weights/decoder_gpu.pth", map_location=device))
 
 # count number of parameters
 total_params = sum(p.numel() for p in model.parameters())
@@ -43,8 +43,6 @@ with torch.no_grad():
     while True:
         random_index = random.randint(0, len(test_ds) - 1)
         image = test_ds[random_index]["image"]
-        captions = test_ds[random_index]["caption"]
-        random_caption = random.choice(captions)
 
         input_tokens = [clip_tokenizer.bos_token_id]
         output_tokens = []
