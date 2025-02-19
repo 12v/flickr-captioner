@@ -30,7 +30,7 @@ model = Decoder(
 )
 
 
-model.load_state_dict(torch.load("weights/decoder_gpu.pth", map_location=device))
+model.load_state_dict(torch.load("weights/decoder_gpu_hf.pth", map_location=device))
 
 # count number of parameters
 total_params = sum(p.numel() for p in model.parameters())
@@ -44,7 +44,7 @@ with torch.no_grad():
         random_index = random.randint(0, len(test_ds) - 1)
         image = test_ds[random_index]["image"]
 
-        input_tokens = [clip_tokenizer.bos_token_id]
+        input_tokens = [clip_tokenizer.cls_token_id]
         output_tokens = []
 
         image_embeddings = get_image_embeddings([image])
@@ -59,17 +59,17 @@ with torch.no_grad():
                 padding_mask.to(device),
             )
 
-            softmax_output = F.softmax(output[0][0][1:], dim=-1)
+            softmax_output = F.softmax(output[0][i + 1], dim=-1)
             output_token = torch.multinomial(softmax_output, 1).item()
+
+            if output_token == clip_tokenizer.sep_token_id:
+                break
 
             input_tokens.append(output_token)
             output_tokens.append(output_token)
 
             print(output_tokens, end="\r")
             output_text = clip_tokenizer.decode(output_tokens)
-
-            if output_token == clip_tokenizer.eos_token_id:
-                break
 
         print("\n")
         print(output_text)
