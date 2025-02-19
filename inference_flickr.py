@@ -1,5 +1,6 @@
 import random
 
+import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
 
@@ -8,7 +9,6 @@ from data.flickr_clip import (
     get_image_embeddings,
     test_ds,
 )
-from data.visualization import visualize_image
 from model.decoder import Decoder
 from params_flickr import (
     d_model_decoder,
@@ -60,7 +60,9 @@ with torch.no_grad():
             )
 
             softmax_output = F.softmax(output[0][i + 1], dim=-1)
-            output_token = torch.multinomial(softmax_output, 1).item()
+            # output_token = torch.multinomial(softmax_output, 1).item()
+
+            output_token = torch.argmax(softmax_output).item()
 
             if output_token == clip_tokenizer.sep_token_id:
                 break
@@ -73,4 +75,6 @@ with torch.no_grad():
 
         print("\n")
         print(output_text)
-        visualize_image(image)
+        plt.imshow(image)
+        plt.axis("off")
+        plt.show()
