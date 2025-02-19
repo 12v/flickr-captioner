@@ -7,7 +7,6 @@ from transformers import (
     AutoTokenizer,
     CLIPModel,
     CLIPProcessor,
-    CLIPTextModel,
 )
 
 from utils import device
@@ -20,18 +19,12 @@ pretrained_model = "openai/clip-vit-base-patch32"
 
 clip_image_model = CLIPModel.from_pretrained(pretrained_model).to(device)
 clip_processor = CLIPProcessor.from_pretrained(pretrained_model)
-clip_text_model = CLIPTextModel.from_pretrained(pretrained_model).to(device)
-clip_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+bert_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 
 for param in clip_image_model.parameters():
     param.requires_grad = False
 
-for param in clip_text_model.parameters():
-    param.requires_grad = False
-
 clip_image_model.eval()
-clip_text_model.eval()
-
 
 length = len(ds)
 train_length = int(length * 0.8)
@@ -105,7 +98,7 @@ def _collate_fn(batch, caption_length):
     captions = [item[1] for item in batch]
 
     with torch.no_grad():
-        input_tokens, output_tokens, input_padding_mask = get_text_embeddings(
+        input_tokens, output_tokens, input_padding_mask = get_text_tokens(
             captions, caption_length
         )
 
@@ -117,9 +110,9 @@ def _collate_fn(batch, caption_length):
         )
 
 
-def get_text_embeddings(captions, caption_length):
+def get_text_tokens(captions, caption_length):
     with torch.no_grad():
-        clip_text_inputs = clip_tokenizer(
+        clip_text_inputs = bert_tokenizer(
             captions,
             padding=True,
             truncation=True,
@@ -139,14 +132,3 @@ def get_text_embeddings(captions, caption_length):
             output_tokens,
             input_padding_mask,
         )
-
-
-def get_text_embeddings_from_token_ids(token_ids, padding_mask):
-    with torch.no_grad():
-        clip_text_outputs = clip_text_model(
-            input_ids=token_ids,
-            attention_mask=padding_mask,
-        )
-
-        last_hidden_state = clip_text_outputs.last_hidden_state
-        return last_hidden_state.to(device)

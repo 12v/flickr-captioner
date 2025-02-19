@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 
 from data.flickr_clip import (
-    clip_tokenizer,
+    bert_tokenizer,
     get_image_embeddings,
     test_ds,
 )
@@ -22,15 +22,15 @@ from utils import device
 model = Decoder(
     d_model_decoder=d_model_decoder,
     decoder_length=decoder_length,
-    vocab_size=clip_tokenizer.vocab_size,
+    vocab_size=bert_tokenizer.vocab_size,
     num_decoder_layers=num_decoder_layers,
     num_heads=num_heads,
-    padding_index=clip_tokenizer.pad_token_id,
+    padding_index=bert_tokenizer.pad_token_id,
     dropout_rate=dropout_rate,
 )
 
 
-model.load_state_dict(torch.load("weights/decoder_gpu_hf.pth", map_location=device))
+model.load_state_dict(torch.load("weights/decoder_gpu.pth", map_location=device))
 
 # count number of parameters
 total_params = sum(p.numel() for p in model.parameters())
@@ -44,7 +44,7 @@ with torch.no_grad():
         random_index = random.randint(0, len(test_ds) - 1)
         image = test_ds[random_index]["image"]
 
-        input_tokens = [clip_tokenizer.cls_token_id]
+        input_tokens = [bert_tokenizer.cls_token_id]
         output_tokens = []
 
         image_embeddings = get_image_embeddings([image])
@@ -64,14 +64,14 @@ with torch.no_grad():
 
             output_token = torch.argmax(softmax_output).item()
 
-            if output_token == clip_tokenizer.sep_token_id:
+            if output_token == bert_tokenizer.sep_token_id:
                 break
 
             input_tokens.append(output_token)
             output_tokens.append(output_token)
 
             print(output_tokens, end="\r")
-            output_text = clip_tokenizer.decode(output_tokens)
+            output_text = bert_tokenizer.decode(output_tokens)
 
         print("\n")
         print(output_text)

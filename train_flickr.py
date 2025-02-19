@@ -16,7 +16,7 @@ else:
 from data.flickr_clip import (
     FlickrClipDataset,
     _collate_fn,
-    clip_tokenizer,
+    bert_tokenizer,
     test_ds,
     test_embeddings,
     train_ds,
@@ -72,9 +72,9 @@ def train():
         d_model_decoder=d_model_decoder,
         decoder_length=decoder_length,
         num_decoder_layers=num_decoder_layers,
-        vocab_size=clip_tokenizer.vocab_size,
+        vocab_size=bert_tokenizer.vocab_size,
         num_heads=num_heads,
-        padding_index=clip_tokenizer.pad_token_id,
+        padding_index=bert_tokenizer.pad_token_id,
         dropout_rate=dropout_rate,
     )
 
