@@ -18,7 +18,9 @@ from data.flickr_clip import (
     _collate_fn,
     clip_tokenizer,
     test_ds,
+    test_embeddings,
     train_ds,
+    train_embeddings,
 )
 from model.decoder import Decoder
 from params_flickr import (
@@ -41,8 +43,12 @@ def train():
 
     partial_collate_fn = partial(_collate_fn, caption_length=decoder_length - 1)
 
-    training_dataset = FlickrClipDataset(train_ds, caption_length=decoder_length - 1)
-    validation_dataset = FlickrClipDataset(test_ds, caption_length=decoder_length - 1)
+    training_dataset = FlickrClipDataset(
+        train_ds, train_embeddings, caption_length=decoder_length - 1
+    )
+    validation_dataset = FlickrClipDataset(
+        test_ds, test_embeddings, caption_length=decoder_length - 1
+    )
 
     train_dataloader = DataLoader(
         training_dataset,
