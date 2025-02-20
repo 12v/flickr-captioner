@@ -50,7 +50,7 @@ else:
     test_embeddings = data["test_embeddings"]
 
 
-class FlickrClipDataset(Dataset):
+class FlickrDataset(Dataset):
     def __init__(self, dataset, embeddings, caption_length):
         self.dataset = dataset
         self.caption_length = caption_length
@@ -69,26 +69,7 @@ class FlickrClipDataset(Dataset):
         return image_embedding, caption
 
 
-class FlickrPixtralDataset(Dataset):
-    def __init__(self, dataset, embeddings, caption_length):
-        self.dataset = dataset
-        self.caption_length = caption_length
-        self.embeddings = embeddings
-
-    def __len__(self):
-        return len(self.dataset) * 5
-
-    def __getitem__(self, idx):
-        photo_id = idx // 5
-        caption_id = idx % 5
-
-        image = self.dataset[photo_id]["image"]
-        caption = self.dataset[photo_id]["caption"][caption_id]
-
-        return image, caption
-
-
-def _clip_collate_fn(batch, caption_length):
+def _collate_fn(batch, caption_length):
     photos = [item[0] for item in batch]
     captions = [item[1] for item in batch]
 
@@ -99,25 +80,6 @@ def _clip_collate_fn(batch, caption_length):
 
         return (
             torch.stack(photos),
-            input_tokens,
-            output_tokens,
-            input_padding_mask,
-        )
-
-
-def _pixtral_collate_fn(batch, caption_length):
-    photos = [item[0] for item in batch]
-    captions = [item[1] for item in batch]
-
-    with torch.no_grad():
-        input_tokens, output_tokens, input_padding_mask = get_text_tokens(
-            captions, caption_length
-        )
-
-        photo_embeddings = get_image_embeddings(photos)
-
-        return (
-            photo_embeddings,
             input_tokens,
             output_tokens,
             input_padding_mask,

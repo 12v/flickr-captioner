@@ -15,8 +15,8 @@ else:
     wandb = DummyWandb()
 
 from data.flickr import (
-    FlickrPixtralDataset,
-    _pixtral_collate_fn,
+    FlickrDataset,
+    _collate_fn,
     test_ds,
     test_embeddings,
     train_ds,
@@ -36,17 +36,17 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 def train():
     num_epochs = 20
-    batch_size = 128 if torch.cuda.is_available() else 100
+    batch_size = 128 if torch.cuda.is_available() else 2
     learning_rate = 1e-4 if torch.cuda.is_available() else 1e-3
     num_workers = 2 if torch.cuda.is_available() else 0
     persistent_workers = True if num_workers > 0 else False
 
-    partial_collate_fn = partial(_pixtral_collate_fn, caption_length=decoder_length - 1)
+    partial_collate_fn = partial(_collate_fn, caption_length=decoder_length - 1)
 
-    training_dataset = FlickrPixtralDataset(
+    training_dataset = FlickrDataset(
         train_ds, train_embeddings, caption_length=decoder_length - 1
     )
-    validation_dataset = FlickrPixtralDataset(
+    validation_dataset = FlickrDataset(
         test_ds, test_embeddings, caption_length=decoder_length - 1
     )
 
