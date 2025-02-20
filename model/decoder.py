@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from model.attention import Attention
-from model.positional_encoder import PositionalEncoder
 
 
 class DecoderLayer(nn.Module):
@@ -54,7 +53,6 @@ class Decoder(nn.Module):
     ):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, d_model_decoder)
-        self.positional_encoder = PositionalEncoder(d_model_decoder, decoder_length)
         self.decoder_layers = nn.ModuleList(
             [
                 DecoderLayer(d_model_decoder, num_heads, dropout_rate)
@@ -72,15 +70,17 @@ class Decoder(nn.Module):
         input_tokens,
         output_labels,
         input_padding_mask,
+        image_padding_mask,
     ):
-        x = self.forward(image_embedding, input_tokens, input_padding_mask)
-        x = x[:, 1:, :]
+        x = self.forward(
+            image_embedding, input_tokens, input_padding_mask, image_padding_mask
+        )
         x = x.permute(0, 2, 1)
-
         return nn.CrossEntropyLoss(ignore_index=self.padding_index)(x, output_labels)
 
-    def combine_embeddings(self, image_embedding, text_embeddings, input_padding_mask):
-        image_embedding = image_embedding.unsqueeze(1)
+    def combine_embeddings(
+        self, image_embedding, text_embeddings, input_padding_mask, image_padding_mask
+    ):
         combined_embeddings = torch.cat([image_embedding, text_embeddings], dim=1)
 
         image_embedding_mask = torch.ones_like(image_embedding)[:, :, 0]
@@ -91,16 +91,19 @@ class Decoder(nn.Module):
 
         return combined_embeddings, combined_padding_mask
 
-    def forward(self, image_embedding, input_tokens, text_padding_mask):
+    def forward(
+        self, image_embedding, input_tokens, text_padding_mask, image_padding_mask
+    ):
         x = self.embedding(input_tokens)
         x, combined_padding_mask = self.combine_embeddings(
-            image_embedding, x, text_padding_mask
+            image_embedding, x, text_padding_mask, image_padding_mask
         )
-        x = self.positional_encoder(x)
         x = F.dropout(x, self.dropout_rate)
 
         for layer in self.decoder_layers:
             x = layer(x, combined_padding_mask)
 
         x = self.norm(x)
-        return self.output_layer(x)
+        x = self.output_layer(x)
+
+        return x[:, image_embedding.shape[1] :, :]

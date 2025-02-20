@@ -110,17 +110,20 @@ def train():
             input_tokens,
             output_tokens,
             padding_mask,
+            image_padding_mask,
         ) in train_loop:
             image_embedding = image_embedding.to(device)
             input_tokens = input_tokens.to(device)
             output_tokens = output_tokens.to(device)
             padding_mask = padding_mask.to(device)
+            image_padding_mask = image_padding_mask.to(device)
 
             loss = decoder.compute_loss(
                 image_embedding,
                 input_tokens,
                 output_tokens,
                 padding_mask,
+                image_padding_mask,
             )
 
             optimizer.zero_grad()
@@ -147,19 +150,21 @@ def train():
             input_tokens,
             output_tokens,
             padding_mask,
+            image_padding_mask,
         ) in val_dataloader:
             decoder.eval()
             image_embedding = image_embedding.to(device)
             input_tokens = input_tokens.to(device)
             output_tokens = output_tokens.to(device)
             padding_mask = padding_mask.to(device)
-
+            image_padding_mask = image_padding_mask.to(device)
             with torch.no_grad():
                 loss = decoder.compute_loss(
                     image_embedding,
                     input_tokens,
                     output_tokens,
                     padding_mask,
+                    image_padding_mask,
                 )
             val_losses.append(loss.item())
 

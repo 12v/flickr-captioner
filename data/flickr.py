@@ -5,6 +5,7 @@ from datasets import load_dataset
 from torch.utils.data import Dataset
 
 from data.bert import get_text_tokens
+from data.pixtral import get_image_embeddings
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -20,8 +21,6 @@ test_ds = ds.select(range(train_length, length))
 
 
 def cache_image_embeddings(photos, batch_size=256):
-    from data.pixtral import get_image_embeddings
-
     embeddings = []
     for i in range(0, len(photos), batch_size):
         print(i)
@@ -32,7 +31,7 @@ def cache_image_embeddings(photos, batch_size=256):
     return torch.cat(embeddings, dim=0)
 
 
-embedding_path = os.path.join(script_dir, "flickr30k_embedded_pixtral.pt")
+embedding_path = os.path.join(script_dir, "flickr30k_embedded.pt")
 
 if not os.path.exists(embedding_path):
     print("Computing image embeddings")
@@ -64,7 +63,7 @@ class FlickrDataset(Dataset):
         photo_id = idx // 5
         caption_id = idx % 5
 
-        image_embedding = self.embeddings[photo_id]
+        image_embedding = self.dataset[photo_id]["image"]
         caption = self.dataset[photo_id]["caption"][caption_id]
 
         return image_embedding, caption
@@ -79,9 +78,12 @@ def _collate_fn(batch, caption_length):
             captions, caption_length
         )
 
+        photo_embeddings, image_padding_mask = get_image_embeddings(photos)
+
         return (
-            torch.stack(photos),
+            photo_embeddings,
             input_tokens,
             output_tokens,
             input_padding_mask,
+            image_padding_mask,
         )

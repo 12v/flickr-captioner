@@ -3,7 +3,11 @@ import os
 import requests
 import safetensors.torch
 import torch
-from transformers import PixtralImageProcessor, PixtralVisionConfig, PixtralVisionModel
+from transformers import (
+    PixtralImageProcessorFast,
+    PixtralVisionConfig,
+    PixtralVisionModel,
+)
 
 from utils import device
 
@@ -28,7 +32,7 @@ if not os.path.exists(output_file):
 print("Loading Pixtral 12B weights")
 weights = safetensors.torch.load_file(output_file)
 
-processor = PixtralImageProcessor.from_pretrained("mistral-community/pixtral-12b")
+processor = PixtralImageProcessorFast.from_pretrained("mistral-community/pixtral-12b")
 
 config = PixtralVisionConfig.from_pretrained("mistral-community/pixtral-12b")
 
@@ -45,6 +49,7 @@ model.eval()
 def get_image_embeddings(photos):
     with torch.no_grad():
         outputs = []
+        masks = []
         for photo in photos:
             pixtral_image_inputs = processor(images=photo, return_tensors="pt").to(
                 device
@@ -52,9 +57,33 @@ def get_image_embeddings(photos):
 
             pixtral_image_outputs = model.forward(**pixtral_image_inputs)
 
-            pooled_embeddings = pixtral_image_outputs.last_hidden_state.max(dim=1)[0]
+            pooled_embeddings = pixtral_image_outputs.last_hidden_state
             outputs.append(pooled_embeddings)
 
-        stacked_outputs = torch.stack(outputs)
+        max_length = max(output.shape[1] for output in outputs)
+
+        padded_outputs = []
+        for output in outputs:
+            padded_output = torch.cat(
+                [
+                    output,
+                    torch.zeros(
+                        output.shape[0],
+                        max_length - output.shape[1],
+                        output.shape[2],
+                        device=device,
+                    ),
+                ],
+                dim=1,
+            )
+            mask = torch.ones(
+                output.shape[0], max_length, dtype=torch.long, device=device
+            )
+            mask[:, output.shape[1] :] = 0
+            masks.append(mask)
+            padded_outputs.append(padded_output)
+
+        stacked_outputs = torch.stack(padded_outputs)
+        stacked_masks = torch.stack(masks)
         stacked_outputs = stacked_outputs.squeeze(1)
-        return stacked_outputs.to(device)
+        return stacked_outputs.to(device), stacked_masks.to(device)
