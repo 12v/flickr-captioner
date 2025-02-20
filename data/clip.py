@@ -8,6 +8,11 @@ pretrained_model = "openai/clip-vit-base-patch32"
 clip_image_model = CLIPModel.from_pretrained(pretrained_model).to(device)
 clip_processor = CLIPProcessor.from_pretrained(pretrained_model)
 
+for param in clip_image_model.parameters():
+    param.requires_grad = False
+
+clip_image_model.eval()
+
 
 def get_image_embeddings(photos):
     with torch.no_grad():

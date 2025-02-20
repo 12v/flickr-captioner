@@ -1,4 +1,4 @@
-d_model_decoder = 512
+d_model_decoder = 1024
 
 decoder_length = 50
 
