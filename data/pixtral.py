@@ -1,13 +1,40 @@
+import os
+
+import requests
+import safetensors.torch
 import torch
 from transformers import PixtralImageProcessor, PixtralVisionConfig, PixtralVisionModel
 
 from utils import device
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+download_path = "https://huggingface.co/12v12v/p12b_vision_tower/resolve/main/vision_tower.safetensors"
+
+output_path = os.path.join(script_dir, "pixtral_weights")
+output_file = os.path.join(output_path, "vision_tower.safetensors")
+
+
+def download_safetensors():
+    os.makedirs(output_path, exist_ok=True)
+    response = requests.get(download_path)
+    with open(output_file, "wb") as f:
+        f.write(response.content)
+
+
+if not os.path.exists(output_file):
+    print("Downloading Pixtral 12B weights")
+    download_safetensors()
+
+print("Loading Pixtral 12B weights")
+weights = safetensors.torch.load_file(output_file)
 
 processor = PixtralImageProcessor.from_pretrained("mistral-community/pixtral-12b")
 
 config = PixtralVisionConfig.from_pretrained("mistral-community/pixtral-12b")
 
 model = PixtralVisionModel(config).to(device)
+
+model.load_state_dict(weights)
 
 for param in model.parameters():
     param.requires_grad = False

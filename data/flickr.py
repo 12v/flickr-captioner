@@ -31,7 +31,7 @@ def cache_image_embeddings(photos, batch_size=256):
     return torch.cat(embeddings, dim=0)
 
 
-embedding_path = os.path.join(script_dir, "flickr30k_embedded.pt")
+embedding_path = os.path.join(script_dir, "flickr30k_embedded_pixtral.pt")
 
 if not os.path.exists(embedding_path):
     print("Computing image embeddings")
