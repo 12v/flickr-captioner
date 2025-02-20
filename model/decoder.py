@@ -54,7 +54,6 @@ class Decoder(nn.Module):
     ):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, d_model_decoder)
-        self.embedding2 = nn.Linear(d_model_decoder, d_model_decoder)
         self.positional_encoder = PositionalEncoder(d_model_decoder, decoder_length)
         self.decoder_layers = nn.ModuleList(
             [
@@ -97,7 +96,6 @@ class Decoder(nn.Module):
         x, combined_padding_mask = self.combine_embeddings(
             image_embedding, x, text_padding_mask
         )
-        x = self.embedding2(x)
         x = self.positional_encoder(x)
         x = F.dropout(x, self.dropout_rate)
 
