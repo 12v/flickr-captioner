@@ -38,7 +38,7 @@ def train():
     num_epochs = 20
     batch_size = 128 if torch.cuda.is_available() else 100
     learning_rate = 1e-4 if torch.cuda.is_available() else 1e-3
-    num_workers = 8 if torch.cuda.is_available() else 0
+    num_workers = 2 if torch.cuda.is_available() else 0
     persistent_workers = True if num_workers > 0 else False
 
     partial_collate_fn = partial(_collate_fn, caption_length=decoder_length - 1)
