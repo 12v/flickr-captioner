@@ -80,13 +80,9 @@ class Decoder(nn.Module):
 
         return nn.CrossEntropyLoss(ignore_index=self.padding_index)(x, output_labels)
 
-    def forward(self, image_embedding, input_tokens, input_padding_mask):
+    def combine_embeddings(self, image_embedding, text_embeddings, input_padding_mask):
         image_embedding = image_embedding.unsqueeze(1)
-
-        input_text_embeddings = self.embedding(input_tokens)
-
-        combined_embeddings = torch.cat([image_embedding, input_text_embeddings], dim=1)
-        combined_embeddings = self.embedding2(combined_embeddings)
+        combined_embeddings = torch.cat([image_embedding, text_embeddings], dim=1)
 
         image_embedding_mask = torch.ones_like(image_embedding)[:, :, 0]
         combined_padding_mask = torch.cat(
@@ -94,8 +90,15 @@ class Decoder(nn.Module):
         )
         combined_padding_mask = combined_padding_mask == 0
 
-        x = self.positional_encoder(combined_embeddings)
+        return combined_embeddings, combined_padding_mask
 
+    def forward(self, image_embedding, input_tokens, text_padding_mask):
+        x = self.embedding(input_tokens)
+        x, combined_padding_mask = self.combine_embeddings(
+            image_embedding, x, text_padding_mask
+        )
+        x = self.embedding2(x)
+        x = self.positional_encoder(x)
         x = F.dropout(x, self.dropout_rate)
 
         for layer in self.decoder_layers:
