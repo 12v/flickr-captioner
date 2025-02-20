@@ -5,7 +5,6 @@ from datasets import load_dataset
 from torch.utils.data import Dataset
 
 from data.bert import get_text_tokens
-from data.pixtral import get_image_embeddings
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -21,6 +20,8 @@ test_ds = ds.select(range(train_length, length))
 
 
 def cache_image_embeddings(photos, batch_size=256):
+    from data.pixtral import get_image_embeddings
+
     embeddings = []
     for i in range(0, len(photos), batch_size):
         print(i)
