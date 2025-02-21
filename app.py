@@ -2,11 +2,14 @@ import io
 
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
 from inference_flickr import inference
 
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="pwa", html=True), name="static")
 
 
 async def processing_image(file: UploadFile):
@@ -26,4 +29,4 @@ async def upload_image(file: UploadFile = File(...)):
 
 @app.get("/")
 async def root():
-    return FileResponse("index.html")
+    return FileResponse("pwa/index.html")
