@@ -80,11 +80,6 @@ def combine_and_pad_embeddings(image_embeddings):
         masks.append(mask)
         padded_embeddings.append(padded_embedding)
 
-    stacked_embeddings = torch.stack(padded_embeddings)
-    stacked_masks = torch.stack(masks)
-    print("stacked", stacked_embeddings.shape)
-    print("stacked masks", stacked_masks.shape)
-    stacked_embeddings = stacked_embeddings.squeeze(1)
-
-    print("squeezed", stacked_embeddings.shape)
+    stacked_embeddings = torch.cat(padded_embeddings, dim=0)
+    stacked_masks = torch.cat(masks, dim=0)
     return stacked_embeddings.to(device), stacked_masks.to(device)
