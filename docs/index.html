@@ -17,6 +17,7 @@
 </head>
 
 <body>
+    <button id="start">Start</button>
     <canvas id="canvas" style="display:none;"></canvas>
     <p id="output"></p>
 
@@ -25,21 +26,25 @@
         const outputElement = document.getElementById("output");
         let videoStream;
 
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                videoStream = stream;
-                const video = document.createElement("video");
-                video.srcObject = stream;
-                video.play();
+        document.getElementById("start").addEventListener("click", () => {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    videoStream = stream;
+                    const video = document.createElement("video");
+                    video.srcObject = stream;
+                    video.setAttribute("playsinline", "true");
+                    video.setAttribute("autoplay", "true");
+                    video.play();
 
-                document.body.insertBefore(video, outputElement);
+                    document.body.insertBefore(video, outputElement);
 
-                setInterval(() => captureAndUploadImage(video), 2000);
-            })
-            .catch(error => {
-                console.error("Error accessing webcam:", error);
-                outputElement.innerText = "Error accessing webcam.";
-            });
+                    setInterval(() => captureAndUploadImage(video), 2000);
+                })
+                .catch(error => {
+                    console.error("Error accessing webcam:", error);
+                    outputElement.innerText = "Error accessing webcam.";
+                });
+        });
 
         function captureAndUploadImage(video) {
             // Draw current frame from video onto canvas
