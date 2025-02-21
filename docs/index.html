@@ -29,6 +29,8 @@
         document.getElementById("start").addEventListener("click", () => {
             navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
                 .then(stream => {
+                    // remove the start button
+                    document.getElementById("start").remove();
                     videoStream = stream;
                     const video = document.createElement("video");
                     video.srcObject = stream;
