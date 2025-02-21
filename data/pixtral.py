@@ -46,12 +46,8 @@ for param in model.parameters():
 model.eval()
 
 
-def get_image_embeddings(photo):
+def calculate_embeddings(photo):
     with torch.no_grad():
-        # outputs = []
-        # masks = []
-        # for i, photo in enumerate(photos):
-        #     print(f"Processing image {i} of {len(photos)}")
         pixtral_image_inputs = processor(images=photo, return_tensors="pt").to(device)
 
         pixtral_image_outputs = model.forward(**pixtral_image_inputs)
@@ -60,35 +56,35 @@ def get_image_embeddings(photo):
         print(embeddings.dtype)
         return embeddings.clone().cpu().detach()
 
-    #     outputs.append(embeddings.clone().cpu().detach().half())
-    # return outputs
 
-    # max_length = max(output.shape[1] for output in outputs)
+def combine_and_pad_embeddings(image_embeddings):
+    max_length = max(embedding.shape[1] for embedding in image_embeddings)
 
-    # padded_outputs = []
-    # for i, output in enumerate(outputs):
-    #     if i % 100 == 0:
-    #         print(f"Padding image {i} of {len(outputs)}")
-    #     padded_output = torch.cat(
-    #         [
-    #             output,
-    #             torch.zeros(
-    #                 output.shape[0],
-    #                 max_length - output.shape[1],
-    #                 output.shape[2],
-    #                 device=device,
-    #             ),
-    #         ],
-    #         dim=1,
-    #     )
-    #     mask = torch.ones(
-    #         output.shape[0], max_length, dtype=torch.long, device=device
-    #     )
-    #     mask[:, output.shape[1] :] = 0
-    #     masks.append(mask)
-    #     padded_outputs.append(padded_output)
+    padded_embeddings = []
+    masks = []
 
-    # stacked_outputs = torch.stack(padded_outputs)
-    # stacked_masks = torch.stack(masks)
-    # stacked_outputs = stacked_outputs.squeeze(1)
-    # return stacked_outputs.to(device), stacked_masks.to(device)
+    fully_padded_embedding = torch.zeros(
+        image_embeddings[0].shape[0],
+        max_length,
+        image_embeddings[0].shape[2],
+        device=device,
+    )
+
+    for embedding in image_embeddings:
+        padded_embedding = fully_padded_embedding.clone()
+        padded_embedding[:, : embedding.shape[1]] = embedding
+        mask = torch.ones(
+            embedding.shape[0], max_length, dtype=torch.long, device=device
+        )
+        mask[:, embedding.shape[1] :] = 0
+        masks.append(mask)
+        padded_embeddings.append(padded_embedding)
+
+    stacked_embeddings = torch.stack(padded_embeddings)
+    stacked_masks = torch.stack(masks)
+    print("stacked", stacked_embeddings.shape)
+    print("stacked masks", stacked_masks.shape)
+    stacked_embeddings = stacked_embeddings.squeeze(1)
+
+    print("squeezed", stacked_embeddings.shape)
+    return stacked_embeddings.to(device), stacked_masks.to(device)

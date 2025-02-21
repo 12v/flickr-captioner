@@ -18,9 +18,9 @@ from data.flickr import (
     FlickrDataset,
     _collate_fn,
     test_ds,
-    test_embeddings,
+    test_offsets,
     train_ds,
-    train_embeddings,
+    train_offsets,
 )
 from model.decoder import Decoder
 from params_flickr import (
@@ -44,10 +44,10 @@ def train():
     partial_collate_fn = partial(_collate_fn, caption_length=decoder_length - 1)
 
     training_dataset = FlickrDataset(
-        train_ds, train_embeddings, caption_length=decoder_length - 1
+        train_ds, train_offsets, caption_length=decoder_length - 1
     )
     validation_dataset = FlickrDataset(
-        test_ds, test_embeddings, caption_length=decoder_length - 1
+        test_ds, test_offsets, caption_length=decoder_length - 1
     )
 
     train_dataloader = DataLoader(
