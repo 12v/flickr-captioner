@@ -1,4 +1,5 @@
 import os
+import pickle
 
 import torch
 from datasets import load_dataset
@@ -31,17 +32,26 @@ def cache_image_embeddings(photos, batch_size=256):
     return torch.cat(embeddings, dim=0)
 
 
-embedding_path = os.path.join(script_dir, "flickr30k_embedded.pt")
+embedding_path = os.path.join(script_dir, "flickr30k_embedded_pixtral.pt")
 
 if not os.path.exists(embedding_path):
     print("Computing image embeddings")
-    train_embeddings = cache_image_embeddings([item["image"] for item in train_ds])
-    test_embeddings = cache_image_embeddings([item["image"] for item in test_ds])
-
-    torch.save(
-        {"train_embeddings": train_embeddings, "test_embeddings": test_embeddings},
-        embedding_path,
-    )
+    pickle_file = os.path.join(script_dir, "flickr30k_embedded_pixtral.pkl")
+    with open(pickle_file, "ab") as f:
+        for i, photo in enumerate([item["image"] for item in train_ds]):
+            if i % 100 == 0:
+                print(f"Processing image {i} of {len(train_ds)}")
+            embeddings = get_image_embeddings(photo)
+            pickle.dump(embeddings, f)
+        for i, photo in enumerate([item["image"] for item in test_ds]):
+            if i % 100 == 0:
+                print(f"Processing image {i} of {len(test_ds)}")
+            embeddings = get_image_embeddings(photo)
+            pickle.dump(embeddings, f)
+    # torch.save(
+    #     {"train_embeddings": train_embeddings, "test_embeddings": test_embeddings},
+    #     embedding_path,
+    # )
     print("Saved embeddings to", embedding_path)
 else:
     print("Loading pre-computed embeddings")
