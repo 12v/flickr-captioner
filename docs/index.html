@@ -9,32 +9,6 @@
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <link rel="manifest" href="site.webmanifest">
-    <style>
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        #canvas {
-            display: block;
-            width: 100vw;
-            height: 50vh;
-            background: black;
-        }
-
-        #content {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-    </style>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register("serviceworker.js");
@@ -43,13 +17,9 @@
 </head>
 
 <body>
-
     <button id="start">Start</button>
     <canvas id="canvas" style="display:none;"></canvas>
-    <div id="content" style="padding: 20px;">
-        <p id="output"></p>
-    </div>
-
+    <p id="output"></p>
 
     <script>
         const canvas = document.getElementById("canvas");
@@ -57,10 +27,8 @@
         let videoStream;
 
         document.getElementById("start").addEventListener("click", () => {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
+            navigator.mediaDevices.getUserMedia({ video: true })
                 .then(stream => {
-                    // hide the start button
-                    // document.getElementById("start").style.display = "none";
                     videoStream = stream;
                     const video = document.createElement("video");
                     video.srcObject = stream;
@@ -74,7 +42,7 @@
                 })
                 .catch(error => {
                     console.error("Error accessing webcam:", error);
-                    outputElement.innerText = error.message;
+                    outputElement.innerText = "Error accessing webcam.";
                 });
         });
 
