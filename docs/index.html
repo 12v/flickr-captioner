@@ -52,7 +52,7 @@
                 formData.append("file", blob, "camera.jpg");
 
                 // Send the image to the server
-                fetch("/upload", {
+                fetch("https://snowy-water-a81c.12v.workers.dev/", {
                     method: "POST",
                     body: formData
                 })
