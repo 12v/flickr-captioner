@@ -14,12 +14,11 @@ RUN pip install --no-cache-dir -r app-requirements.txt
 
 # Copy the weights to the weights directory
 COPY weights/decoder_gpu.pth weights/decoder_gpu.pth
-COPY index.html index.html
 
 COPY *.py .
 COPY data/*.py ./data/
 COPY model/*.py ./model/
-COPY index.html .
+COPY pwa/* ./pwa/
 
 # Expose the port the app runs on
 EXPOSE 60606
