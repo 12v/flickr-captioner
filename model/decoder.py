@@ -83,9 +83,8 @@ class Decoder(nn.Module):
     ):
         combined_embeddings = torch.cat([image_embedding, text_embeddings], dim=1)
 
-        image_embedding_mask = torch.ones_like(image_embedding)[:, :, 0]
         combined_padding_mask = torch.cat(
-            [image_embedding_mask, input_padding_mask], dim=1
+            [image_padding_mask, input_padding_mask], dim=1
         )
         combined_padding_mask = combined_padding_mask == 0
 
