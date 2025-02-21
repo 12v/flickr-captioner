@@ -17,60 +17,65 @@
 </head>
 
 <body>
-    <input type="file" id="fileInput" accept="image/*">
-    <button onclick="uploadImage()">Upload</button>
-    <br>
-    <img id="uploadedImage" style="max-width: 300px; display: none;" />
+    <canvas id="canvas" style="display:none;"></canvas>
     <p id="output"></p>
 
     <script>
-        const fileInput = document.getElementById("fileInput");
-        const imgElement = document.getElementById("uploadedImage");
+        const canvas = document.getElementById("canvas");
         const outputElement = document.getElementById("output");
+        let videoStream;
 
-        // Show image immediately after selecting a file
-        fileInput.addEventListener("change", function () {
-            if (!fileInput.files.length) return;
-            const file = fileInput.files[0];
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                videoStream = stream;
+                const video = document.createElement("video");
+                video.srcObject = stream;
+                video.play();
 
-            // Free previous object URL to avoid memory leaks
-            if (imgElement.src) {
-                URL.revokeObjectURL(imgElement.src);
-            }
+                document.body.insertBefore(video, outputElement);
 
-            imgElement.src = URL.createObjectURL(file);
-            imgElement.style.display = "block";
-            outputElement.innerText = ""; // Clear previous output
-        });
-
-        function uploadImage() {
-            if (!fileInput.files.length) return;
-
-            const file = fileInput.files[0];
-            const formData = new FormData();
-            formData.append("file", file);
-
-            // outputElement.innerText = "Uploading...";
-
-            fetch("/upload", {
-                method: "POST",
-                body: formData
+                setInterval(() => captureAndUploadImage(video), 2000);
             })
-                .then(response => {
-                    const reader = response.body.getReader();
-                    function read() {
-                        reader.read().then(({ done, value }) => {
-                            if (done) return;
-                            outputElement.innerText += new TextDecoder().decode(value) + " ";
-                            read();
-                        });
-                    }
-                    read();
+            .catch(error => {
+                console.error("Error accessing webcam:", error);
+                outputElement.innerText = "Error accessing webcam.";
+            });
+
+        function captureAndUploadImage(video) {
+            // Draw current frame from video onto canvas
+            const context = canvas.getContext("2d");
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert canvas to image data
+            canvas.toBlob(blob => {
+                const formData = new FormData();
+                formData.append("file", blob, "camera.jpg");
+
+                // Send the image to the server
+                fetch("/upload", {
+                    method: "POST",
+                    body: formData
                 })
-                .catch(error => {
-                    console.error("Upload failed:", error);
-                    outputElement.innerText = "Error uploading image.";
-                });
+                    .then(response => {
+                        const reader = response.body.getReader();
+                        const newParagraph = document.createElement("p");
+                        outputElement.insertBefore(newParagraph, outputElement.firstChild);
+                        function read() {
+                            reader.read().then(({ done, value }) => {
+                                if (done) return;
+                                const newText = new TextDecoder().decode(value) + " ";
+                                newParagraph.textContent += newText;
+
+                                return read();
+                            });
+                        }
+                        return read();
+                    })
+                    .catch(error => {
+                        console.error("Upload failed:", error);
+                        outputElement.innerText = "Error uploading image.";
+                    });
+            }, "image/jpeg");
         }
     </script>
 </body>
